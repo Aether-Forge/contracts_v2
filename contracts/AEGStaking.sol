@@ -141,6 +141,7 @@ contract AEGStaking is Initializable, ReentrancyGuardUpgradeable {
         uint256 poolId,
         address userAddress
     ) public view returns (uint256) {
+        require(poolId < pools.length, "Pool does not exist");
         Pool storage pool = pools[poolId];
         uint256 timeStaked = block.timestamp - pool.startTimes[userAddress];
         uint256 rewardRate = pool.rewardRate;
