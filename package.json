@@ -1,0 +1,23 @@
+{
+  "name": "aaaa-newest-contracts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomiclabs/hardhat-etherscan": "^3.1.8",
+    "@openzeppelin/hardhat-upgrades": "^3.0.5",
+    "hardhat": "^2.21.0"
+  },
+  "dependencies": {
+    "@chainlink/contracts": "^0.8.0",
+    "@uniswap/v3-core": "^1.0.1",
+    "dotenv": "^16.4.5"
+  }
+}
