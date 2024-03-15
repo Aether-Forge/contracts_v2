@@ -20,6 +20,7 @@ contract AEGStaking is Initializable, ReentrancyGuardUpgradeable {
         mapping(address => uint256) startTimes;
         mapping(address => bool) holdersWhenStaking;
         mapping(address => uint256) rewardsClaimed;
+        mapping(address => uint256) unclaimedRewards;
     }
 
     struct PoolView {
@@ -100,6 +101,12 @@ contract AEGStaking is Initializable, ReentrancyGuardUpgradeable {
             "Exceeds max stake"
         );
         Pool storage pool = pools[poolId];
+
+        if (pool.balances[msg.sender] > 0) {
+            uint256 reward = calculateReward(poolId, msg.sender);
+            pool.unclaimedRewards[msg.sender] += reward;
+        }
+
         aegToken.transferFrom(msg.sender, address(this), amount);
         pool.balances[msg.sender] += amount;
         pool.totalStaked += amount;
@@ -126,12 +133,14 @@ contract AEGStaking is Initializable, ReentrancyGuardUpgradeable {
                     pools[poolId].lockDuration,
             "Tokens are still locked"
         );
-        uint256 reward = calculateReward(poolId, msg.sender);
+        uint256 reward = calculateReward(poolId, msg.sender) +
+            pools[poolId].unclaimedRewards[msg.sender];
         require(
             aegToken.balanceOf(address(this)) >= reward,
             "Contract does not have enough tokens for reward"
         );
         pools[poolId].startTimes[msg.sender] = block.timestamp;
+        pools[poolId].unclaimedRewards[msg.sender] = 0;
         aegToken.transfer(msg.sender, reward);
         totalRewardsClaimed += reward;
         pools[poolId].rewardsClaimed[msg.sender] += reward;
