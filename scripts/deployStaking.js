@@ -61,6 +61,9 @@ async function main() {
   const allPools = await aegStaking.allPools()
   console.log("allPools", allPools)
 
+  //wait for 1 block
+  await network.provider.send("evm_mine")
+
   for (let i = 0; i < allPools.length; i++) {
     console.log("----pool----", i)
 
