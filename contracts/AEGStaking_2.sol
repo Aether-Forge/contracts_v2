@@ -52,6 +52,11 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         bool holderWhenStaking;
     }
 
+    modifier poolExists(uint256 poolId) {
+        require(poolId < pools.length, "Pool does not exist");
+        _;
+    }
+
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner can call this function");
         _;
@@ -91,8 +96,10 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         newPool.isPaused = isPaused;
     }
 
-    function stake(uint256 poolId, uint256 amount) external nonReentrant {
-        require(poolId < pools.length, "Pool does not exist");
+    function stake(
+        uint256 poolId,
+        uint256 amount
+    ) external nonReentrant poolExists(poolId) {
         require(!pools[poolId].isPaused, "Pool is paused");
         require(block.timestamp < pools[poolId].endTime, "Pool has ended");
         require(amount > 0, "Cannot stake 0 tokens");
@@ -116,32 +123,14 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
             holderWhenStaking: nft.balanceOf(msg.sender) > 0
         });
         pool.stakes[msg.sender].push(newStake);
-        // if (pool.balances[msg.sender] > 0) {
-        //     uint256 reward = calculateReward(poolId, msg.sender);
-        //     pool.unclaimedRewards[msg.sender] += reward;
-        // }
 
         pool.balances[msg.sender] += amount;
         pool.totalStaked += amount;
         totalStaked += amount;
         aegToken.transferFrom(msg.sender, address(this), amount);
-        // pool.startTimes[msg.sender] = block.timestamp;
-        // pool.holdersWhenStaking[msg.sender] = nft.balanceOf(msg.sender) > 0;
     }
 
-    // function unstake(uint256 poolId) external nonReentrant {
-    //     require(poolId < pools.length, "Pool does not exist");
-    //     Pool storage pool = pools[poolId];
-    //     uint256 amount = pool.balances[msg.sender];
-    //     _claim(poolId);
-    //     pool.balances[msg.sender] -= amount;
-    //     pool.totalStaked -= amount;
-    //     totalStaked -= amount;
-    //     aegToken.transfer(msg.sender, amount);
-    // }
-
-    function unstake(uint256 poolId) external nonReentrant {
-        require(poolId < pools.length, "Pool does not exist");
+    function unstake(uint256 poolId) external nonReentrant poolExists(poolId) {
         Pool storage pool = pools[poolId];
         Stake[] storage stakes = pool.stakes[msg.sender];
         uint256 totalAmount = 0;
@@ -174,15 +163,12 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         );
 
         uint256 reward = calculateReward(poolId, msg.sender, stakeIndex);
-        // pools[poolId].unclaimedRewards[msg.sender];
 
         require(
             aegToken.balanceOf(address(this)) >= reward,
             "Contract does not have enough tokens for reward"
         );
 
-        // pools[poolId].startTimes[msg.sender] = block.timestamp;
-        // pools[poolId].unclaimedRewards[msg.sender] = 0;
         aegToken.transfer(msg.sender, reward);
         totalRewardsClaimed += reward;
         pools[poolId].rewardsClaimed[msg.sender] += reward;
@@ -192,8 +178,7 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         uint256 poolId,
         address userAddress,
         uint256 stakeIndex
-    ) public view returns (uint256) {
-        require(poolId < pools.length, "Pool does not exist");
+    ) public view poolExists(poolId) returns (uint256) {
         Pool storage pool = pools[poolId];
         Stake storage stakeD = pool.stakes[userAddress][stakeIndex];
         uint256 timeStaked = block.timestamp - stakeD.startTime;
@@ -210,13 +195,14 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         return (rewardRate * timeStaked * stakeD.amount) / 1000000000000;
     }
 
-    function togglePause(uint256 poolId) external onlyOwner {
-        require(poolId < pools.length, "Pool does not exist");
+    function togglePause(uint256 poolId) external onlyOwner poolExists(poolId) {
         pools[poolId].isPaused = !pools[poolId].isPaused;
     }
 
-    function setEndTime(uint256 poolId, uint256 endTime) external onlyOwner {
-        require(poolId < pools.length, "Pool does not exist");
+    function setEndTime(
+        uint256 poolId,
+        uint256 endTime
+    ) external onlyOwner poolExists(poolId) {
         pools[poolId].endTime = endTime;
     }
 
@@ -236,14 +222,18 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
             totalRewards += calculateReward(poolId, account, i);
         }
 
+        uint256 startTime = pools[poolId].stakes[account][0].startTime;
+        uint256 lockDuration = pools[poolId].lockDuration;
+        bool holderWhenStaking = nft.balanceOf(account) > 0;
+
         return
             UserPoolInfo(
                 totalBalance,
-                pools[poolId].stakes[account][0].startTime,
-                pools[poolId].lockDuration,
+                startTime,
+                lockDuration,
                 totalRewards,
-                pools[poolId].lockDuration,
-                nft.balanceOf(account) > 0
+                pools[poolId].rewardsClaimed[account],
+                holderWhenStaking
             );
     }
 
