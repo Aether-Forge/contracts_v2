@@ -110,12 +110,13 @@ async function main() {
     await aegStaking.stake(poolId, amount) //4 is the unlocked pool
     // await network.provider.send("evm_mine")
 
-    let userPoolInfo = await aegStaking.userPoolInfo(poolId, owner.address)
-    userPoolInfo = convertUserPoolInfo(userPoolInfo)
-    console.log("userPoolInfo", userPoolInfo) //userBalance, startTime, lockDuration, currentReward, wasNftHolderWhenStaked
-    let userStakesInfo = await aegStaking.userStakesInfo(poolId, owner.address)
-    userStakesInfo = convertUserStakesInfo(userStakesInfo)
-    console.log("userStakesInfo", userStakesInfo) // amount, startTime, wasNftHolderWhenStaked
+    await logUserInfo(aegStaking, poolId, owner.address)
+    // let userPoolInfo = await aegStaking.userPoolInfo(poolId, owner.address)
+    // userPoolInfo = convertUserPoolInfo(userPoolInfo)
+    // console.log("userPoolInfo", userPoolInfo) //userBalance, startTime, lockDuration, currentReward, wasNftHolderWhenStaked
+    // let userStakesInfo = await aegStaking.userStakesInfo(poolId, owner.address)
+    // userStakesInfo = convertUserStakesInfo(userStakesInfo)
+    // console.log("userStakesInfo", userStakesInfo) // amount, startTime, wasNftHolderWhenStaked
 
     //time warp 1/2 year into the future
     console.log("TIME WARP 1/2 YEAR")
@@ -133,12 +134,7 @@ async function main() {
     await aegStaking.stake(poolId, amount)
     // await network.provider.send("evm_mine")
 
-    let userPoolInfo2 = await aegStaking.userPoolInfo(poolId, owner.address)
-    userPoolInfo2 = convertUserPoolInfo(userPoolInfo2)
-    console.log("userPoolInfo2", userPoolInfo2)
-    let userStakesInfo2 = await aegStaking.userStakesInfo(poolId, owner.address)
-    userStakesInfo2 = convertUserStakesInfo(userStakesInfo2)
-    console.log("userStakesInfo2", userStakesInfo2)
+    await logUserInfo(aegStaking, poolId, owner.address)
 
     console.log("TIME WARP 1/2 YEAR (SO NOW 1 YRS IN FUTURE TOTAL)")
     //time warp 1 year into the future // USE THIS FOR SEEING APR RESULTS
@@ -147,14 +143,10 @@ async function main() {
 
     //unstake
     console.log("UNSTAKING, should only unstake the first stake")
+    await logUserInfo(aegStaking, poolId, owner.address)
     await aegStaking.unstake(poolId)
 
-    let userPoolInfo3 = await aegStaking.userPoolInfo(poolId, owner.address)
-    userPoolInfo3 = convertUserPoolInfo(userPoolInfo3)
-    console.log("userPoolInfoUNSTAKED", userPoolInfo3)
-    let userStakesInfo3 = await aegStaking.userStakesInfo(poolId, owner.address)
-    userStakesInfo3 = convertUserStakesInfo(userStakesInfo3)
-    console.log("userStakesInfoUNSTAKED, amount in 1 should still be 500", userStakesInfo3)
+    await logUserInfo(aegStaking, poolId, owner.address)
 
     //stake another 500
     console.log("STAKING 500 AGAIN")
@@ -162,12 +154,7 @@ async function main() {
     await aegStaking.stake(poolId, amount)
     // await network.provider.send("evm_mine")
 
-    let userPoolInfo4 = await aegStaking.userPoolInfo(poolId, owner.address)
-    userPoolInfo4 = convertUserPoolInfo(userPoolInfo4)
-    console.log("userPoolInfo4", userPoolInfo4)
-    let userStakesInfo4 = await aegStaking.userStakesInfo(poolId, owner.address)
-    userStakesInfo4 = convertUserStakesInfo(userStakesInfo4)
-    console.log("userStakesInfo4", userStakesInfo4)
+    await logUserInfo(aegStaking, poolId, owner.address)
 
     //time warp 1/2 year into the future again
     console.log("TIME WARP 1/2 YEAR, should be 1.5 years in future now")
@@ -178,16 +165,23 @@ async function main() {
     console.log("UNSTAKING, should only unstake the second of 3 stakes")
     await aegStaking.unstake(poolId)
 
-    let userPoolInfo5 = await aegStaking.userPoolInfo(poolId, owner.address)
-    userPoolInfo5 = convertUserPoolInfo(userPoolInfo5)
-    console.log("userPoolInfoUNSTAKED", userPoolInfo5)
-    let userStakesInfo5 = await aegStaking.userStakesInfo(poolId, owner.address)
-    userStakesInfo5 = convertUserStakesInfo(userStakesInfo5)
-    console.log("userStakesInfoUNSTAKED, amount in 1 should still be 500", userStakesInfo5)
+    await logUserInfo(aegStaking, poolId, owner.address)
+
+    //time warp 1/2 year into the future again to get to 2 years
+    console.log("TIME WARP 1/2 YEAR, should be 2 years in future now")
+    await network.provider.send("evm_increaseTime", [15768000])
+    await network.provider.send("evm_mine")
+
+    //unstake
+    console.log("UNSTAKING, should only unstake the last of 3 stakes")
+    await aegStaking.unstake(poolId)
+
+    await logUserInfo(aegStaking, poolId, owner.address)
 
     //user balance of testToken
     const userBalanceAfter = await token.balanceOf(owner.address)
-    console.log("userBalanceAfter", userBalanceAfter.toString()) //should be 1000.0001
+    console.log("userbalanceBefore", userBalance.toString())
+    console.log("userBalanceAfter", userBalanceAfter.toString()) //
   }
 }
 
@@ -211,12 +205,25 @@ const convertUserStakesInfo = (userStakesInfoResult) => {
 }
 
 const convertUserPoolInfo = (userPoolInfoResult) => {
-  const [userBalance, startTime, lockDuration, currentReward, wasNftHolderWhenStaked] = userPoolInfoResult
+  const [userBalance, releaseable, startTime, lockDuration, currentReward] = userPoolInfoResult
   return {
     userBalance: userBalance.toString(),
+    releaseable: releaseable.toString(),
     startTime: startTime.toString(),
     lockDuration: lockDuration.toString(),
     currentReward: currentReward.toString(),
-    wasNftHolderWhenStaked,
   }
+}
+
+async function logUserInfo(aegStaking, poolId, address) {
+  let userPoolInfo = await aegStaking.userPoolInfo(poolId, address)
+  userPoolInfo = convertUserPoolInfo(userPoolInfo)
+
+  let userStakesInfo = await aegStaking.userStakesInfo(poolId, address)
+  userStakesInfo = convertUserStakesInfo(userStakesInfo)
+
+  console.log("userPoolInfo", userPoolInfo)
+  console.log("userStakesInfo", userStakesInfo)
+
+  return { userPoolInfo, userStakesInfo }
 }

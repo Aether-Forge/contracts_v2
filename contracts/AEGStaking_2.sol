@@ -25,10 +25,7 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         uint256 endTime;
         bool isPaused;
         mapping(address => uint256) balances;
-        // mapping(address => uint256) startTimes;
-        // mapping(address => bool) holdersWhenStaking;
         mapping(address => uint256) rewardsClaimed;
-        // mapping(address => uint256) unclaimedRewards;
         mapping(address => Stake[]) stakes;
     }
 
@@ -45,11 +42,11 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
 
     struct UserPoolInfo {
         uint256 balance;
+        uint256 releaseable;
         uint256 startTime;
         uint256 lockDuration;
         uint256 currentReward;
         uint256 rewardsClaimed;
-        bool holderWhenStaking;
     }
 
     modifier poolExists(uint256 poolId) {
@@ -134,13 +131,15 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         Pool storage pool = pools[poolId];
         Stake[] storage stakes = pool.stakes[msg.sender];
         uint256 totalAmount = 0;
+        uint256 totalReward = 0;
 
         for (uint256 i = stakes.length; i > 0; i--) {
             if (
                 stakes[i - 1].amount > 0 &&
                 block.timestamp > stakes[i - 1].startTime + pool.lockDuration
             ) {
-                _claim(poolId, i - 1);
+                // _claim(poolId, i - 1);
+                totalReward += calculateReward(poolId, msg.sender, i - 1);
                 totalAmount += stakes[i - 1].amount;
                 stakes[i - 1].amount = 0;
             }
@@ -151,27 +150,7 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         pool.totalStaked -= totalAmount;
         totalStaked -= totalAmount;
         pool.balances[msg.sender] -= totalAmount;
-        aegToken.transfer(msg.sender, totalAmount);
-    }
-
-    function _claim(uint256 poolId, uint256 stakeIndex) internal {
-        require(
-            block.timestamp >
-                pools[poolId].stakes[msg.sender][stakeIndex].startTime +
-                    pools[poolId].lockDuration,
-            "Tokens are still locked"
-        );
-
-        uint256 reward = calculateReward(poolId, msg.sender, stakeIndex);
-
-        require(
-            aegToken.balanceOf(address(this)) >= reward,
-            "Contract does not have enough tokens for reward"
-        );
-
-        aegToken.transfer(msg.sender, reward);
-        totalRewardsClaimed += reward;
-        pools[poolId].rewardsClaimed[msg.sender] += reward;
+        aegToken.transfer(msg.sender, totalAmount + totalReward);
     }
 
     function calculateReward(
@@ -212,28 +191,35 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
     ) external view returns (UserPoolInfo memory) {
         uint256 totalBalance = 0;
         uint256 totalRewards = 0;
+        uint256 releaseable = 0;
 
         if (pools[poolId].stakes[account].length == 0) {
-            return UserPoolInfo(0, 0, pools[poolId].lockDuration, 0, 0, false);
-        }
-
-        for (uint256 i = 0; i < pools[poolId].stakes[account].length; i++) {
-            totalBalance += pools[poolId].stakes[account][i].amount;
-            totalRewards += calculateReward(poolId, account, i);
+            return UserPoolInfo(0, 0, 0, pools[poolId].lockDuration, 0, 0);
         }
 
         uint256 startTime = pools[poolId].stakes[account][0].startTime;
         uint256 lockDuration = pools[poolId].lockDuration;
-        bool holderWhenStaking = nft.balanceOf(account) > 0;
 
+        for (uint256 i = 0; i < pools[poolId].stakes[account].length; i++) {
+            totalBalance += pools[poolId].stakes[account][i].amount;
+            totalRewards += calculateReward(poolId, account, i);
+            //need to get releasable amount. if lock duration is over, then all is releaseable in current stake
+            if (
+                block.timestamp >
+                pools[poolId].stakes[account][i].startTime +
+                    pools[poolId].lockDuration
+            ) {
+                releaseable += pools[poolId].stakes[account][i].amount;
+            }
+        }
         return
             UserPoolInfo(
                 totalBalance,
+                releaseable,
                 startTime,
                 lockDuration,
                 totalRewards,
-                pools[poolId].rewardsClaimed[account],
-                holderWhenStaking
+                pools[poolId].rewardsClaimed[account]
             );
     }
 
