@@ -6,8 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts-upgradeable-4.7.3/security/ReentrancyGuardUpgradeable.sol";
 
-import "hardhat/console.sol";
-
 contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
     struct Stake {
         uint256 amount;
@@ -138,7 +136,6 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
                 stakes[i - 1].amount > 0 &&
                 block.timestamp > stakes[i - 1].startTime + pool.lockDuration
             ) {
-                // _claim(poolId, i - 1);
                 totalReward += calculateReward(poolId, msg.sender, i - 1);
                 totalAmount += stakes[i - 1].amount;
                 stakes[i - 1].amount = 0;
@@ -203,7 +200,6 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         for (uint256 i = 0; i < pools[poolId].stakes[account].length; i++) {
             totalBalance += pools[poolId].stakes[account][i].amount;
             totalRewards += calculateReward(poolId, account, i);
-            //need to get releasable amount. if lock duration is over, then all is releaseable in current stake
             if (
                 block.timestamp >
                 pools[poolId].stakes[account][i].startTime +
