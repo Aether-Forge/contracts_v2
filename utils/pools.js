@@ -1,48 +1,55 @@
-const { ethers, run } = require("hardhat")
+const { ethers, run, network } = require("hardhat")
 
 const getRewardRate = (apr) => {
   const rate = (apr / 100 / 31536000) * 1000000000000
   return Math.round(rate)
 }
 
+//ex 4% APR, 4.4% boosted APR => 1100 or 1.1x
+const calculateRewardMultiplier = (apr, boostedApr) => {
+  const multiplier = (boostedApr / apr) * 1000
+  return Math.round(multiplier)
+}
+
+//bronze, silver, gold, platinum
 const prodPools = [
-  //10%, 30 days, 10k user limit
   {
+    name: "Bronze",
     lockDuration: 60 * 60 * 24 * 30, // 30 days
-    rewardRate: getRewardRate(10), // 10% APR
-    rewardMultiplier: 1000, // 1x so no multiplier
-    limitPerAddress: ethers.parseEther("10000"), // 10000 tokens
-    maxStake: ethers.parseEther("100000"), // 100000 tokens
+    rewardRate: getRewardRate(4),
+    rewardMultiplier: 1100, // 1.1x multiplier
+    limitPerAddress: ethers.parseEther("10000"),
+    maxStake: ethers.parseEther("30000000"),
     endTime: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 3, // 3 years from now
     isPaused: false,
   },
-  //20%, 90 days, 30k user limit
   {
+    name: "Silver",
     lockDuration: 60 * 60 * 24 * 90, // 90 days
-    rewardRate: getRewardRate(20), // 20% APR
-    rewardMultiplier: 1000, // 1x so no multiplier
-    limitPerAddress: ethers.parseEther("30000"), // 30000 tokens
-    maxStake: ethers.parseEther("100000"), // 100000 tokens
+    rewardRate: getRewardRate(10),
+    rewardMultiplier: 1100, // 1.1x multiplier
+    limitPerAddress: ethers.parseEther("30000"),
+    maxStake: ethers.parseEther("12000000"),
     endTime: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 3, // 3 years from now
     isPaused: false,
   },
-  //25%, 180 days, 70k user limit
   {
+    name: "Gold",
     lockDuration: 60 * 60 * 24 * 180, // 180 days
-    rewardRate: getRewardRate(25), // 25% APR
-    rewardMultiplier: 1000, // 1x so no multiplier
-    limitPerAddress: ethers.parseEther("70000"), // 70000 tokens
-    maxStake: ethers.parseEther("100000"), // 100000 tokens
+    rewardRate: getRewardRate(18),
+    rewardMultiplier: 1100, // 1.1x multiplier
+    limitPerAddress: ethers.parseEther("70000"),
+    maxStake: ethers.parseEther("21000000"),
     endTime: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 3, // 3 years from now
     isPaused: false,
   },
-  //35%, 365 days, 100k user limit
   {
+    name: "Platinum",
     lockDuration: 60 * 60 * 24 * 365, // 365 days
-    rewardRate: getRewardRate(35), // 35% APR
-    rewardMultiplier: 1000, // 1x so no multiplier
-    limitPerAddress: ethers.parseEther("100000"), // 100000 tokens
-    maxStake: ethers.parseEther("100000"), // 100000 tokens
+    rewardRate: getRewardRate(30),
+    rewardMultiplier: 1100, // 1.1x multiplier
+    limitPerAddress: ethers.parseEther("100000"),
+    maxStake: ethers.parseEther("15000000"),
     endTime: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365 * 3, // 3 years from now
     isPaused: false,
   },
@@ -50,6 +57,7 @@ const prodPools = [
 
 const devPools = [
   {
+    name: "Dev Pool 1",
     lockDuration: 0, // 0 seconds
     rewardRate: getRewardRate(10), // 10% APR
     rewardMultiplier: 3000, // 3x multiplier
@@ -58,15 +66,8 @@ const devPools = [
     endTime: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365, // 1 year
     isPaused: false,
   },
-  /* 
-  lock duration of 10 minutes
-  reward rate of 50% APR
-  reward multiplier of 2x
-  limit per address of 1000 tokens
-  max stake of 10000 tokens
-  end time of 1 year from now
-  */
   {
+    name: "Dev Pool 2",
     lockDuration: 60 * 10, // 10 minutes
     rewardRate: getRewardRate(50), // 50% APR
     rewardMultiplier: 2000, // 2x multiplier
@@ -76,14 +77,19 @@ const devPools = [
     isPaused: false,
   },
 ]
-
-const pools = [...prodPools, ...devPools]
+let pools = []
+if (network.name === "polygon" || network.name === "matic") {
+  pools = prodPools
+} else {
+  pools = [...prodPools, ...devPools]
+}
 
 const createPools = async (stakingContract) => {
   for (const pool of pools) {
     // console.log("Creating pool", pool)
 
     const res = await stakingContract.createPool(
+      pool.name,
       pool.lockDuration,
       pool.rewardRate,
       pool.rewardMultiplier,

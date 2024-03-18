@@ -14,6 +14,7 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
     }
 
     struct Pool {
+        string name;
         uint256 lockDuration;
         uint256 rewardRate;
         uint256 rewardMultiplier;
@@ -28,6 +29,7 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
     }
 
     struct PoolView {
+        string name;
         uint256 lockDuration;
         uint256 rewardRate;
         uint256 rewardMultiplier;
@@ -39,10 +41,10 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
     }
 
     struct UserPoolInfo {
+        string name;
         uint256 balance;
         uint256 releasable;
         uint256 startTime;
-        // uint256 lockDuration;
         uint256 currentReward;
         uint256 rewardsClaimed;
     }
@@ -72,6 +74,7 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
     }
 
     function createPool(
+        string memory name,
         uint256 lockDuration,
         uint256 rewardRate,
         uint256 rewardMultiplier,
@@ -81,6 +84,7 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         bool isPaused
     ) external onlyOwner {
         Pool storage newPool = pools.push();
+        newPool.name = name;
         newPool.lockDuration = lockDuration;
         newPool.rewardRate = rewardRate;
         newPool.rewardMultiplier = rewardMultiplier;
@@ -177,6 +181,12 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         pools[poolId].isPaused = !pools[poolId].isPaused;
     }
 
+    function pauseAllPools() external onlyOwner {
+        for (uint256 i = 0; i < pools.length; i++) {
+            pools[i].isPaused = true;
+        }
+    }
+
     function setEndTime(
         uint256 poolId,
         uint256 endTime
@@ -193,11 +203,10 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         uint256 releasable = 0;
 
         if (pools[poolId].stakes[account].length == 0) {
-            return UserPoolInfo(0, 0, 0, 0, 0);
+            revert("No stakes found");
         }
 
         uint256 startTime = pools[poolId].stakes[account][0].startTime;
-        // uint256 lockDuration = pools[poolId].lockDuration;
 
         for (uint256 i = 0; i < pools[poolId].stakes[account].length; i++) {
             totalBalance += pools[poolId].stakes[account][i].amount;
@@ -212,10 +221,10 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         }
         return
             UserPoolInfo(
+                pools[poolId].name,
                 totalBalance,
                 releasable,
                 startTime,
-                // lockDuration,
                 totalRewards,
                 pools[poolId].rewardsClaimed[account]
             );
@@ -225,7 +234,6 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         uint256 poolId,
         address account
     ) external view returns (Stake[] memory) {
-        //need to keep the holderWhenStaking value fresh by checking if they are still a holder
         Stake[] memory stakes = pools[poolId].stakes[account];
         for (uint256 i = 0; i < stakes.length; i++) {
             stakes[i].holderWhenStaking =
@@ -239,6 +247,7 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         PoolView[] memory poolViews = new PoolView[](pools.length);
         for (uint i = 0; i < pools.length; i++) {
             poolViews[i] = PoolView(
+                pools[i].name,
                 pools[i].lockDuration,
                 pools[i].rewardRate,
                 pools[i].rewardMultiplier,

@@ -69,20 +69,18 @@ async function main() {
   await network.provider.send("evm_mine")
 
   for (let i = 0; i < allPools.length; i++) {
-    // console.log("----pool----", i, owner.address)
-    // const userPoolInfo = await aegStaking.userPoolInfo(i, owner.address)
-    // console.log("userPoolInfo", userPoolInfo)
-    // const [userBalance, startTime, lockDuration, currentReward, wasNftHolderWhenStaked] = userPoolInfo
-    // const userPoolObject = {
-    //   userBalance: userBalance.toString(),
-    //   startTime: startTime.toString(),
-    //   lockDuration: lockDuration.toString(),
-    //   currentReward: currentReward.toString(),
-    //   wasNftHolderWhenStaked,
-    // }
-    // console.log("userPoolObject", userPoolObject)
-    // const userStakesInfo = await aegStaking.userStakesInfo(i, owner.address)
-    // console.log("userStakesInfo", userStakesInfo)
+    console.log("----pool----", i)
+    try {
+      const userPoolInfo = await aegStaking.userPoolInfo(i, owner.address)
+    } catch (error) {
+      console.log("no stakes", error.message)
+      continue
+    }
+    console.log("userPoolInfo", userPoolInfo)
+    const userPoolObject = convertUserPoolInfo(userPoolInfo)
+    console.log("userPoolObject", userPoolObject)
+    const userStakesInfo = await aegStaking.userStakesInfo(i, owner.address)
+    console.log("userStakesInfo", userStakesInfo)
   }
   if (isLocal) {
     console.log("starting local tests")
@@ -102,21 +100,10 @@ async function main() {
     const amount = "500000000000000000000" //1000 tokens
     const approveRes = await token.approve(aegStakingAddress, amount)
 
-    // const userPoolInfo0 = await aegStaking.userPoolInfo(poolId, owner.address)
-    // console.log("userPoolInfo0", userPoolInfo0)
-    // const userStakesInfo0 = await aegStaking.userStakesInfo(poolId, owner.address)
-    // console.log("userStakesInfo0", userStakesInfo0)
-
     await aegStaking.stake(poolId, amount) //4 is the unlocked pool
     // await network.provider.send("evm_mine")
 
     await logUserInfo(aegStaking, poolId, owner.address)
-    // let userPoolInfo = await aegStaking.userPoolInfo(poolId, owner.address)
-    // userPoolInfo = convertUserPoolInfo(userPoolInfo)
-    // console.log("userPoolInfo", userPoolInfo) //userBalance, startTime, lockDuration, currentReward, wasNftHolderWhenStaked
-    // let userStakesInfo = await aegStaking.userStakesInfo(poolId, owner.address)
-    // userStakesInfo = convertUserStakesInfo(userStakesInfo)
-    // console.log("userStakesInfo", userStakesInfo) // amount, startTime, wasNftHolderWhenStaked
 
     //time warp 1/2 year into the future
     console.log("TIME WARP 1/2 YEAR")
@@ -205,8 +192,9 @@ const convertUserStakesInfo = (userStakesInfoResult) => {
 }
 
 const convertUserPoolInfo = (userPoolInfoResult) => {
-  const [userBalance, releaseable, startTime, currentReward, rewardsClaimed] = userPoolInfoResult
+  const [name, userBalance, releaseable, startTime, currentReward, rewardsClaimed] = userPoolInfoResult
   return {
+    name,
     userBalance: userBalance.toString(),
     releaseable: releaseable.toString(),
     startTime: startTime.toString(),
