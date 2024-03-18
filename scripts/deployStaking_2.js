@@ -205,13 +205,14 @@ const convertUserStakesInfo = (userStakesInfoResult) => {
 }
 
 const convertUserPoolInfo = (userPoolInfoResult) => {
-  const [userBalance, releaseable, startTime, lockDuration, currentReward] = userPoolInfoResult
+  const [userBalance, releaseable, startTime, currentReward, rewardsClaimed] = userPoolInfoResult
   return {
     userBalance: userBalance.toString(),
     releaseable: releaseable.toString(),
     startTime: startTime.toString(),
-    lockDuration: lockDuration.toString(),
+    // lockDuration: lockDuration.toString(),
     currentReward: currentReward.toString(),
+    rewardsClaimed: rewardsClaimed.toString(),
   }
 }
 

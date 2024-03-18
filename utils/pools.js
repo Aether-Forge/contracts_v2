@@ -58,6 +58,23 @@ const devPools = [
     endTime: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365, // 1 year
     isPaused: false,
   },
+  /* 
+  lock duration of 10 minutes
+  reward rate of 50% APR
+  reward multiplier of 2x
+  limit per address of 1000 tokens
+  max stake of 10000 tokens
+  end time of 1 year from now
+  */
+  {
+    lockDuration: 60 * 10, // 10 minutes
+    rewardRate: getRewardRate(50), // 50% APR
+    rewardMultiplier: 2000, // 2x multiplier
+    limitPerAddress: ethers.parseEther("1000"), // 10000 tokens
+    maxStake: ethers.parseEther("10000"), // 10000 tokens
+    endTime: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365, // 1 year
+    isPaused: false,
+  },
 ]
 
 const pools = [...prodPools, ...devPools]
