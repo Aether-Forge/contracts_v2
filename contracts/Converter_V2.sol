@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 
 // solhint-disable-next-line
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.25;
 
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "./interfaces/IToken.sol";
-// import "./Library.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "@openzeppelin/contracts-upgradeable-4.7.3/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "./interfaces/IToken.sol";
 
 import "hardhat/console.sol";
 
@@ -36,6 +35,8 @@ contract COEConverter_V2 is Initializable {
     function initialize(
         address _aegToken,
         address _wAegToken,
+        // address _usdcToken,
+        // address _usdtToken,
         address _cards,
         address _ethernals,
         address _adventurers,
@@ -50,6 +51,8 @@ contract COEConverter_V2 is Initializable {
         useChainlink = _useChainlink;
         aegToken = _aegToken;
         wAegToken = _wAegToken;
+        // usdcToken = _usdcToken;
+        // usdtToken = _usdtToken;
         cards = _cards;
         ethernals = _ethernals;
         adventurers = _adventurers;
@@ -59,17 +62,6 @@ contract COEConverter_V2 is Initializable {
         roles[OWNER][msg.sender] = true;
         roles[ADMIN][msg.sender] = true;
     }
-
-    // function that takes and asset address, useraddress, payment token, array of ids, array of amounts and sb(boolean for if its osulbound or not)
-    // check that the asset address is one of the 5 allowed addresses
-    // take the price that comes in as dollars (45 = $0.045, 500 = $0.5, etc.) and convert it to AEG price
-    // check to see if msg.sender has the required amount of payment token
-    // transfer the payment token from msg.sender to the payment receiver
-    // check the given asset address and check if the items exist with contract.types(type)
-    //check if any of the items isPromo, if they are, revert
-    // check if the items are basic(Rarity.Basic), if they are, revert NEED TO MAKE RARITY ENUM
-    //use NFTInterface to adminMint(userAddress, type, 1, amount,sb)
-    // function convertAssets
 
     function convertAssets(
         address _assetAddress,
@@ -92,13 +84,10 @@ contract COEConverter_V2 is Initializable {
             "Invalid asset address"
         );
 
-        console.log("price: %s", _price);
-        uint256 aegUsdPrice = getAegUsdPrice(18);
+        uint256 aegUsdPrice = getAegUsdPrice();
         require(aegUsdPrice > 0, "AEG/USD price is zero");
-        uint256 scaledPrice = (_price * 10 ** 15); // Scale _price to 15 decimals because AEG has 18 decimals and we get our price with 3 decimal places
+        uint256 scaledPrice = (_price * 10 ** 33); // Scale _price to 33 decimals because we need to divide by aegUsdPrice which has 18 decimals
         uint256 convertedPrice = scaledPrice / aegUsdPrice;
-
-        console.log("convertedPrice: %s", convertedPrice);
 
         require(
             IToken(_paymentToken).balanceOf(_userAddress) >= convertedPrice,
@@ -131,14 +120,10 @@ contract COEConverter_V2 is Initializable {
         uint256 _amount,
         bool _sb
     ) private {
-        console.log("type: %s", _type);
         if (_assetAddress == cards) {
             (, , bool exists, Library.Rarity rarity, bool isPromo) = ICard(
                 _assetAddress
             ).types(_type);
-
-            console.log("exists: ", exists);
-            console.log("isPromo: ", isPromo);
 
             require(exists, "Invalid type");
             require(!isPromo, "Cannot convert promo assets");
@@ -150,42 +135,102 @@ contract COEConverter_V2 is Initializable {
         } else if (_assetAddress == emotes) {
             (, , bool exists) = IEmote(_assetAddress).types(_type);
 
-            console.log("exists: ", exists);
             require(exists, "Invalid type");
             IEmote(_assetAddress).adminMint(_userAddress, _type, _amount, _sb);
         } else {
             (, , , bool exists) = INft(_assetAddress).types(_type);
 
-            console.log("exists: ", exists);
             require(exists, "Invalid type");
             INft(_assetAddress).adminMint(_userAddress, _type, 1, _amount, _sb);
         }
     }
 
-    function getAegUsdPrice(
-        uint256 targetDecimals
-    ) public view returns (uint256) {
-        if (useChainlink) {
-            (, int256 price, , , ) = aegUsdPriceFeed.latestRoundData();
-            require(price > 0, "Invalid price");
+    // ONLY FOR TESTING ----------------------------
+    uint160 constant testPrice = 177099116423414427175393512050595101; // about $0.20
+    function getAegUsdPrice() public pure returns (uint256) {
+        uint160 sqrtPriceX96 = testPrice;
+        uint256 price = 1e42 /
+            (((uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (2 ** 192)) *
+                1e12);
 
-            uint256 rawPrice = uint256(price);
-            uint256 feedDecimals = aegUsdPriceFeed.decimals();
+        console.log("price: ", price);
 
-            if (feedDecimals < targetDecimals) {
-                return rawPrice * (10 ** (targetDecimals - feedDecimals));
-            } else if (feedDecimals > targetDecimals) {
-                return rawPrice / (10 ** (feedDecimals - targetDecimals));
-            } else {
-                return rawPrice;
-            }
-        } else {
-            (uint160 sqrtPriceX96, , , , , , ) = uniswapV3Pool.slot0();
-            return
-                ((uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (2 ** 96)) *
-                1e12;
-        }
+        console.log(
+            "test calc of 1000 or $1 purchase: ",
+            (1000 * 10 ** 33) / price
+        );
+
+        return price; //invert price with increased precision
     }
+
+    // PROD ----------------------------
+
+    // function getAegUsdPrice() public view returns (uint256) {
+    //     (uint160 sqrtPriceX96, , , , , , ) = uniswapV3Pool.slot0();
+    //     return
+    //         1e42 /
+    //         (((uint256(sqrtPriceX96) * uint256(sqrtPriceX96)) / (2 ** 192)) *
+    //             1e12);
+    // }
+
+    // WEB2 PAYMENT ----------------------------
+
+    event PurchaseMade(
+        address indexed _userAddress,
+        address indexed _paymentToken,
+        uint256 _acAmount,
+        uint256 _price,
+        uint256 _usdPrice
+    );
+    address public usdcToken;
+    address public usdtToken;
+
+    mapping(uint256 => uint256) public purchaseOptions; //ac amount => usd price
+
+    function purchaseAC(
+        uint256 purchaseOption,
+        address paymentAddress
+    ) external {
+        require(purchaseOptions[purchaseOption] > 0, "Invalid purchase option");
+        uint256 purchaseUsdPrice = purchaseOptions[purchaseOption];
+        IToken paymentToken = IToken(paymentAddress);
+        uint256 price;
+
+        if (paymentAddress == aegToken) {
+            uint256 aegUsdPrice = getAegUsdPrice();
+            price = (purchaseUsdPrice * 10 ** 33) / aegUsdPrice;
+        } else {
+            //if they are paying instable, the price is 1000 for $1 and stable decimal is 6
+            price = purchaseUsdPrice * 1000;
+        }
+
+        require(
+            paymentToken.balanceOf(msg.sender) >= price,
+            "Not enough tokens"
+        );
+
+        console.log("price: ", price);
+
+        paymentToken.transferFrom(msg.sender, paymentReceiver, price);
+
+        // Emit the event
+        emit PurchaseMade(
+            msg.sender,
+            paymentAddress,
+            purchaseOption,
+            price,
+            purchaseUsdPrice
+        );
+    }
+
+    function setPurchaseOption(
+        uint256 _acAmount,
+        uint256 _usdPrice
+    ) external onlyRole(ADMIN) {
+        purchaseOptions[_acAmount] = _usdPrice;
+    }
+
+    // ----------------------------
 
     function setUseChainlink(bool _useChainlink) external onlyRole(OWNER) {
         useChainlink = _useChainlink;
@@ -193,6 +238,20 @@ contract COEConverter_V2 is Initializable {
 
     function setUniswapV3Pool(address _uniswapV3Pool) external onlyRole(OWNER) {
         uniswapV3Pool = IUniswapV3Pool(_uniswapV3Pool);
+    }
+
+    function setUsdcToken(address _usdcToken) external onlyRole(OWNER) {
+        usdcToken = _usdcToken;
+    }
+
+    function setUsdtToken(address _usdtToken) external onlyRole(OWNER) {
+        usdtToken = _usdtToken;
+    }
+
+    function setPaymentReceiver(
+        address _paymentReceiver
+    ) external onlyRole(OWNER) {
+        paymentReceiver = _paymentReceiver;
     }
 
     // ACCESS CONTROL ----------------------------

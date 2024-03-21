@@ -5,6 +5,8 @@ function getNetworkContracts() {
   return {
     AEG_TOKEN,
     WAEG_TOKEN,
+    USDC_TOKEN,
+    USDT_TOKEN,
     CARDS,
     ETHERNALS,
     ADVENTURERS,
@@ -19,14 +21,28 @@ const AEG_TOKEN = {
   address:
     network.name === "mumbai"
       ? "0x6866E9BDaF921050302680537DeFe9E17352F780"
-      : "0xfdA426b79B27e5ee806c287f5EC28086D43f2721",
+      : "0xE3f2b1B2229C0333Ad17D03F179b87500E7C5e01",
 }
 
 const WAEG_TOKEN = {
   address:
     network.name === "mumbai"
       ? "0x869A2D7CA9a291A7A28A5F6EF4151180716675dA"
-      : "0xfdA426b79B27e5ee806c287f5EC28086D43f2721",
+      : "0xd31E99B72455dC526b56654B254EA07e3F889ed2",
+}
+
+const USDC_TOKEN = {
+  address:
+    network.name === "mumbai"
+      ? "0xa14BB57DBB34F903e41166044BfF94D903e9C2a8"
+      : "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+}
+
+const USDT_TOKEN = {
+  address:
+    network.name === "mumbai"
+      ? "0xa14BB57DBB34F903e41166044BfF94D903e9C2a8"
+      : "0xc2132D05D31c914a87C6611C10748AEb04B58e8F",
 }
 
 const CARDS = {
@@ -68,13 +84,13 @@ const AEG_USD_CHAINLINK = {
   address:
     network.name === "mumbai"
       ? "0x572dDec9087154dC5dfBB1546Bb62713147e0Ab0" //this is usdc pricefeed for testing
-      : "0xfdA426b79B27e5ee806c287f5EC28086D43f2721",
+      : "0x0000000000000000000000000000000000000000",
 }
 
 const UNISWAP_V3_POOL = {
   address:
     network.name === "mumbai"
-      ? "0xfdA426b79B27e5ee806c287f5EC28086D43f2721"
+      ? "0x0000000000000000000000000000000000000000"
       : "0x53e9a5490Bc6eB0f8A6338E85955F84484672571",
 }
 

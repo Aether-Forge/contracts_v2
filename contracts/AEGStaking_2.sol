@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.25;
 
-import "@openzeppelin/contracts-upgradeable-4.7.3/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts-upgradeable-4.7.3/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
     struct Stake {
@@ -58,6 +58,13 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         require(msg.sender == owner, "Only owner can call this function");
         _;
     }
+
+    event PoolCreated(uint256 poolId, string name);
+    event PoolPaused(uint256 poolId, bool isPaused);
+    event AllPoolsPaused();
+    event EndTimeSet(uint256 poolId, uint256 endTime);
+    event TokensWithdrawn(address tokenAddress, uint256 amount);
+
     address public owner;
 
     Pool[] public pools;
@@ -67,6 +74,8 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
     uint256 public totalRewardsClaimed;
 
     function initialize(IERC20 _aegToken, IERC721 _nft) external initializer {
+        require(address(_aegToken) != address(0), "Zero address");
+        require(address(_nft) != address(0), "Zero address");
         aegToken = _aegToken;
         nft = _nft;
         owner = msg.sender;
@@ -93,6 +102,8 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         newPool.endTime = endTime;
         newPool.totalStaked = 0;
         newPool.isPaused = isPaused;
+
+        emit PoolCreated(pools.length - 1, name);
     }
 
     function stake(
@@ -126,7 +137,7 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         pool.balances[msg.sender] += amount;
         pool.totalStaked += amount;
         totalStaked += amount;
-        aegToken.transferFrom(msg.sender, address(this), amount);
+        safeTransferFrom(aegToken, msg.sender, address(this), amount);
     }
 
     function unstake(uint256 poolId) external nonReentrant poolExists(poolId) {
@@ -153,7 +164,7 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         totalRewardsClaimed += totalReward;
         pool.rewardsClaimed[msg.sender] += totalReward;
         pool.balances[msg.sender] -= totalAmount;
-        aegToken.transfer(msg.sender, totalAmount + totalReward);
+        safeTransfer(aegToken, msg.sender, totalAmount + totalReward);
     }
 
     function calculateReward(
@@ -179,12 +190,14 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
 
     function togglePause(uint256 poolId) external onlyOwner poolExists(poolId) {
         pools[poolId].isPaused = !pools[poolId].isPaused;
+        emit PoolPaused(poolId, pools[poolId].isPaused);
     }
 
     function pauseAllPools() external onlyOwner {
         for (uint256 i = 0; i < pools.length; i++) {
             pools[i].isPaused = true;
         }
+        emit AllPoolsPaused();
     }
 
     function setEndTime(
@@ -192,6 +205,27 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         uint256 endTime
     ) external onlyOwner poolExists(poolId) {
         pools[poolId].endTime = endTime;
+        emit EndTimeSet(poolId, endTime);
+    }
+
+    function safeTransferFrom(
+        IERC20 token,
+        address sender,
+        address recipient,
+        uint256 amount
+    ) internal {
+        require(
+            token.transferFrom(sender, recipient, amount),
+            "Transfer failed"
+        );
+    }
+
+    function safeTransfer(
+        IERC20 token,
+        address recipient,
+        uint256 amount
+    ) internal {
+        require(token.transfer(recipient, amount), "Transfer failed");
     }
 
     function userPoolInfo(
@@ -274,6 +308,7 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
                 amount,
             "Cannot withdraw user staked tokens"
         );
-        IERC20(tokenAddress).transfer(owner, amount);
+        safeTransfer(IERC20(tokenAddress), owner, amount);
+        emit TokensWithdrawn(tokenAddress, amount);
     }
 }
