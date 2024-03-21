@@ -31,7 +31,7 @@ async function main() {
   // const testNFTAdress = testTokenAddress
 
   const AEGStaking = await ethers.getContractFactory("AEGStaking")
-  const aegStaking = await upgrades.deployProxy(AEGStaking, [tokenAddress, NFTAddress])
+  const aegStaking = await upgrades.deployProxy(AEGStaking, [tokenAddress, NFTAddress], { initializer: "initialize" })
   await aegStaking.waitForDeployment()
 
   console.log("aegStaking deployed to: ", aegStaking)

@@ -204,6 +204,7 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         uint256 poolId,
         uint256 endTime
     ) external onlyOwner poolExists(poolId) {
+        require(endTime > block.timestamp, "End time must be in the future");
         pools[poolId].endTime = endTime;
         emit EndTimeSet(poolId, endTime);
     }
@@ -297,18 +298,5 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
 
     function transferOwnership(address _owner) external onlyOwner {
         owner = _owner;
-    }
-
-    function withdrawTokens(
-        address tokenAddress,
-        uint256 amount
-    ) external onlyOwner {
-        require(
-            IERC20(tokenAddress).balanceOf(address(this)) - totalStaked >=
-                amount,
-            "Cannot withdraw user staked tokens"
-        );
-        safeTransfer(IERC20(tokenAddress), owner, amount);
-        emit TokensWithdrawn(tokenAddress, amount);
     }
 }

@@ -31,7 +31,7 @@ async function main() {
     false,
   ]
 
-  const converter = await upgrades.deployProxy(COEConverter, args)
+  const converter = await upgrades.deployProxy(COEConverter, args, { initializer: "initialize" })
 
   await converter.waitForDeployment()
   const proxyAddress = await converter.getAddress()
