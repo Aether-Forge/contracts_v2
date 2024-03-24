@@ -65,6 +65,11 @@
       "address": "0xfD9466A2C59D3C637E278491a9eD9a7A3e2d0062",
       "txHash": "0xe358fa3542879016a2b031d99e7900937c382ea74151df3ecc26ba019bc84b90",
       "kind": "transparent"
+    },
+    {
+      "address": "0x09F50567311Ee7496Bb51eF3de8392627EB3f518",
+      "txHash": "0x11f27b6f538038aa798aa486b492be82cce747b215aaba9b990d6712287302e9",
+      "kind": "transparent"
     }
   ],
   "impls": {
@@ -1755,6 +1760,271 @@
           }
         },
         "namespaces": {}
+      }
+    },
+    "5f3ceef552c9ce130543f3258be796a247e417aa3a64d675a6c1d9d07c6fe13c": {
+      "address": "0x013ed9Ac9A6153bE64c35C17e4C20898946d0556",
+      "txHash": "0x485230877af6576933d5a2fea9a2dc1d8ab3670a775ed2007380cdc11bf5aa95",
+      "layout": {
+        "solcVersion": "0.8.25",
+        "storage": [
+          {
+            "label": "owner",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "AEGStaking_2",
+            "src": "contracts/AEGStaking_2.sol:68"
+          },
+          {
+            "label": "pools",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_struct(Pool)4097_storage)dyn_storage",
+            "contract": "AEGStaking_2",
+            "src": "contracts/AEGStaking_2.sol:70"
+          },
+          {
+            "label": "aegToken",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_contract(IERC20)2432",
+            "contract": "AEGStaking_2",
+            "src": "contracts/AEGStaking_2.sol:71"
+          },
+          {
+            "label": "nft",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_contract(IERC721)2575",
+            "contract": "AEGStaking_2",
+            "src": "contracts/AEGStaking_2.sol:72"
+          },
+          {
+            "label": "totalStaked",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "AEGStaking_2",
+            "src": "contracts/AEGStaking_2.sol:73"
+          },
+          {
+            "label": "totalRewardsClaimed",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_uint256",
+            "contract": "AEGStaking_2",
+            "src": "contracts/AEGStaking_2.sol:74"
+          }
+        ],
+        "types": {
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)10_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)352_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_struct(Pool)4097_storage)dyn_storage": {
+            "label": "struct AEGStaking_2.Pool[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_struct(Stake)4064_storage)dyn_storage": {
+            "label": "struct AEGStaking_2.Stake[]",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IERC20)2432": {
+            "label": "contract IERC20",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IERC721)2575": {
+            "label": "contract IERC721",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_array(t_struct(Stake)4064_storage)dyn_storage)": {
+            "label": "mapping(address => struct AEGStaking_2.Stake[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Pool)4097_storage": {
+            "label": "struct AEGStaking_2.Pool",
+            "members": [
+              {
+                "label": "name",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "lockDuration",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "rewardRate",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "rewardMultiplier",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "totalStaked",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "limitPerAddress",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "maxStake",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "endTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "isPaused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "8"
+              },
+              {
+                "label": "balances",
+                "type": "t_mapping(t_address,t_uint256)",
+                "offset": 0,
+                "slot": "9"
+              },
+              {
+                "label": "rewardsClaimed",
+                "type": "t_mapping(t_address,t_uint256)",
+                "offset": 0,
+                "slot": "10"
+              },
+              {
+                "label": "stakes",
+                "type": "t_mapping(t_address,t_array(t_struct(Stake)4064_storage)dyn_storage)",
+                "offset": 0,
+                "slot": "11"
+              }
+            ],
+            "numberOfBytes": "384"
+          },
+          "t_struct(Stake)4064_storage": {
+            "label": "struct AEGStaking_2.Stake",
+            "members": [
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "startTime",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "holderWhenStaking",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:40",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
       }
     }
   }

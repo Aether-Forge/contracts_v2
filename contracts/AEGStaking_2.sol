@@ -2,8 +2,8 @@
 pragma solidity 0.8.25;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
@@ -137,7 +137,10 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         pool.balances[msg.sender] += amount;
         pool.totalStaked += amount;
         totalStaked += amount;
-        safeTransferFrom(aegToken, msg.sender, address(this), amount);
+        require(
+            aegToken.transferFrom(msg.sender, address(this), amount),
+            "Transfer failed"
+        );
     }
 
     function unstake(uint256 poolId) external nonReentrant poolExists(poolId) {
@@ -164,7 +167,10 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         totalRewardsClaimed += totalReward;
         pool.rewardsClaimed[msg.sender] += totalReward;
         pool.balances[msg.sender] -= totalAmount;
-        safeTransfer(aegToken, msg.sender, totalAmount + totalReward);
+        require(
+            aegToken.transfer(msg.sender, totalAmount + totalReward),
+            "Transfer failed"
+        );
     }
 
     function calculateReward(
@@ -207,26 +213,6 @@ contract AEGStaking_2 is Initializable, ReentrancyGuardUpgradeable {
         require(endTime > block.timestamp, "End time must be in the future");
         pools[poolId].endTime = endTime;
         emit EndTimeSet(poolId, endTime);
-    }
-
-    function safeTransferFrom(
-        IERC20 token,
-        address sender,
-        address recipient,
-        uint256 amount
-    ) internal {
-        require(
-            token.transferFrom(sender, recipient, amount),
-            "Transfer failed"
-        );
-    }
-
-    function safeTransfer(
-        IERC20 token,
-        address recipient,
-        uint256 amount
-    ) internal {
-        require(token.transfer(recipient, amount), "Transfer failed");
     }
 
     function userPoolInfo(

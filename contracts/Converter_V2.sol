@@ -6,11 +6,12 @@ pragma solidity ^0.8.25;
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./interfaces/IToken.sol";
 
 import "hardhat/console.sol";
 
-contract COEConverter_V2 is Initializable {
+contract COEConverter_V2 is Initializable, OwnableUpgradeable {
     address public aegToken;
     address public wAegToken;
     address public cards;
@@ -25,6 +26,11 @@ contract COEConverter_V2 is Initializable {
     AggregatorV3Interface public aegUsdPriceFeed;
     IUniswapV3Pool public uniswapV3Pool;
 
+    modifier whenNotPaused() {
+        require(!paused, "Contract is paused");
+        _;
+    }
+
     event ConvertedCards(
         address indexed _assetAddress,
         address indexed _userAddress,
@@ -35,32 +41,27 @@ contract COEConverter_V2 is Initializable {
     function initialize(
         address _aegToken,
         address _wAegToken,
-        // address _usdcToken,
-        // address _usdtToken,
         address _cards,
         address _ethernals,
         address _adventurers,
         address _emotes,
         address _cardBacks,
-        address _aegUsdPriceFeed, // Address of the AEG/USD Chainlink price feed
-        address _uniswapV3Pool, // Address of the Uniswap V3 Pool
-        bool _useChainlink // Boolean to switch between Chainlink and Uniswap
+        address _aegUsdPriceFeed,
+        address _uniswapV3Pool,
+        bool _useChainlink
     ) public initializer {
+        __Ownable_init(msg.sender);
         aegUsdPriceFeed = AggregatorV3Interface(_aegUsdPriceFeed);
         uniswapV3Pool = IUniswapV3Pool(_uniswapV3Pool);
         useChainlink = _useChainlink;
         aegToken = _aegToken;
         wAegToken = _wAegToken;
-        // usdcToken = _usdcToken;
-        // usdtToken = _usdtToken;
         cards = _cards;
         ethernals = _ethernals;
         adventurers = _adventurers;
         emotes = _emotes;
         cardBacks = _cardBacks;
         paymentReceiver = msg.sender;
-        roles[OWNER][msg.sender] = true;
-        roles[ADMIN][msg.sender] = true;
     }
 
     function convertAssets(
@@ -71,10 +72,9 @@ contract COEConverter_V2 is Initializable {
         uint256[] memory _amounts,
         uint256 _price, // (ex. 45 = $0.045, 500 = $0.5, 1000 = $1, 10000 = $10) //SEND CALCULATED PRICE
         bool _sb
-    ) external onlyRole(ADMIN) whenNotPaused {
+    ) external onlyOwner whenNotPaused {
         require(_ids.length == _amounts.length, "Invalid input");
 
-        //check that the address is one of the four
         require(
             _assetAddress == cards ||
                 _assetAddress == ethernals ||
@@ -86,7 +86,7 @@ contract COEConverter_V2 is Initializable {
 
         uint256 aegUsdPrice = getAegUsdPrice();
         require(aegUsdPrice > 0, "AEG/USD price is zero");
-        uint256 scaledPrice = (_price * 10 ** 33); // Scale _price to 33 decimals because we need to divide by aegUsdPrice which has 18 decimals
+        uint256 scaledPrice = (_price * 10 ** 33);
         uint256 convertedPrice = scaledPrice / aegUsdPrice;
 
         require(
@@ -200,7 +200,6 @@ contract COEConverter_V2 is Initializable {
             uint256 aegUsdPrice = getAegUsdPrice();
             price = (purchaseUsdPrice * 10 ** 33) / aegUsdPrice;
         } else {
-            //if they are paying instable, the price is 1000 for $1 and stable decimal is 6
             price = purchaseUsdPrice * 1000;
         }
 
@@ -213,7 +212,6 @@ contract COEConverter_V2 is Initializable {
 
         paymentToken.transferFrom(msg.sender, paymentReceiver, price);
 
-        // Emit the event
         emit PurchaseMade(
             msg.sender,
             paymentAddress,
@@ -226,63 +224,29 @@ contract COEConverter_V2 is Initializable {
     function setPurchaseOption(
         uint256 _acAmount,
         uint256 _usdPrice
-    ) external onlyRole(ADMIN) {
+    ) external onlyOwner {
         purchaseOptions[_acAmount] = _usdPrice;
     }
 
     // ----------------------------
 
-    function setUseChainlink(bool _useChainlink) external onlyRole(OWNER) {
+    function setUseChainlink(bool _useChainlink) external onlyOwner {
         useChainlink = _useChainlink;
     }
 
-    function setUniswapV3Pool(address _uniswapV3Pool) external onlyRole(OWNER) {
+    function setUniswapV3Pool(address _uniswapV3Pool) external onlyOwner {
         uniswapV3Pool = IUniswapV3Pool(_uniswapV3Pool);
     }
 
-    function setUsdcToken(address _usdcToken) external onlyRole(OWNER) {
+    function setUsdcToken(address _usdcToken) external onlyOwner {
         usdcToken = _usdcToken;
     }
 
-    function setUsdtToken(address _usdtToken) external onlyRole(OWNER) {
+    function setUsdtToken(address _usdtToken) external onlyOwner {
         usdtToken = _usdtToken;
     }
 
-    function setPaymentReceiver(
-        address _paymentReceiver
-    ) external onlyRole(OWNER) {
+    function setPaymentReceiver(address _paymentReceiver) external onlyOwner {
         paymentReceiver = _paymentReceiver;
-    }
-
-    // ACCESS CONTROL ----------------------------
-
-    mapping(bytes32 => mapping(address => bool)) public roles;
-    bytes32 public constant ADMIN = keccak256(abi.encodePacked("ADMIN"));
-    bytes32 public constant OWNER = keccak256(abi.encodePacked("OWNER"));
-
-    modifier whenNotPaused() {
-        require(!paused, "Contract is paused");
-        _;
-    }
-
-    modifier onlyRole(bytes32 role) {
-        require(roles[role][msg.sender], "Not authorized to converter.");
-        _;
-    }
-
-    function grantRole(bytes32 role, address account) public onlyRole(OWNER) {
-        roles[role][account] = true;
-    }
-
-    function revokeRole(bytes32 role, address account) public onlyRole(OWNER) {
-        roles[role][account] = false;
-    }
-
-    function transferOwnership(address newOwner) external onlyRole(OWNER) {
-        grantRole(OWNER, newOwner);
-        grantRole(ADMIN, newOwner);
-        revokeRole(OWNER, msg.sender);
-        revokeRole(ADMIN, msg.sender);
-        paymentReceiver = newOwner;
     }
 }
